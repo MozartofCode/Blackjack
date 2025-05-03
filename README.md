@@ -1,25 +1,25 @@
-# 🎰 Casino Royale – A Decentralized AI-Powered Blackjack Experience 🃏  
+# Casino Royale – A Decentralized AI-Powered Blackjack Experience
 
 **Play Blackjack against the house alongside AI-powered bots using advanced decision-making algorithms. This decentralized application (DApp) integrates blockchain-based monetary transactions and AI-driven strategy optimization.**  
 
-## 📌 Overview  
+## Overview  
 Casino Royale is a **decentralized Blackjack experience** where players compete against the house alongside AI-driven bots. The project combines **smart contracts**, **machine learning-based decision-making**, and **blockchain technology** to create a next-generation casino experience.  
 
-## 🔥 Key Features  
+## Key Features  
 ✅ **AI-Powered Bots** – Compete against six different bots powered by **Neural Networks (NN), Reinforcement Learning (RL), Decision Trees, and Random Forests**.  
 ✅ **Decentralized Blackjack DApp** – Built using Solidity smart contracts, deployed via **Truffle** on a test blockchain using **Ganache**.  
 ✅ **MVC-Structured Backend** – Clean, scalable, and modularized architecture.  
 ✅ **React.js Frontend** – Interactive UI for seamless gameplay.  
 ✅ **Fair & Transparent Transactions** – Smart contracts ensure fair payouts and decentralized casino operations.  
 
-## 🏗️ Tech Stack  
+## Tech Stack  
 - **Backend:** Solidity (Smart Contracts), Truffle, Ganache, Node.js  
 - **Frontend:** React.js  
 - **AI Models:** Neural Networks (NN), Reinforcement Learning (RL), Decision Trees, Random Forests  
 - **Blockchain:** Ethereum (Testnet), Web3.js  
 - **Development Tools:** Python, Java (for early bot development), OpenGameArt (for assets)  
 
-## 🎮 Game Rules  
+## Game Rules  
 Casino Royale follows a structured set of rules inspired by traditional Blackjack:  
 1️⃣ Played with **5 standard decks** (52 cards each).  
 2️⃣ One **house (dealer) vs. four players** (3 AI bots + 1 human player).  
@@ -73,7 +73,7 @@ python bot_analysis.py
 ```
 This script runs AI-powered bots against the house and evaluates profitability based on a **30% profit threshold**.
 
-## 📊 AI Bot Analysis  
+## AI Bot Analysis  
 The AI models are trained to maximize profits using various strategies:  
 - **Neural Networks (NN)** – Self-learning bot that adapts based on game outcomes.  
 - **Reinforcement Learning (RL)** – Uses Q-learning to optimize decision-making.  
@@ -82,7 +82,7 @@ The AI models are trained to maximize profits using various strategies:
 
 Each bot's **win rate and profit percentage** are analyzed over thousands of games to determine the most effective strategy.  
 
-## 🚧 Future Enhancements  
+## Future Enhancements  
 🔹 Integrate a **Metamask Web3 wallet** for real blockchain transactions.  
 🔹 Expand AI strategies with **Deep Q Networks (DQN)**.  
 🔹 Implement additional Blackjack features like **splitting, doubling down, and insurance** in the DApp version.  
