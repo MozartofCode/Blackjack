@@ -1,0 +1,20 @@
+{
+  "name": "blackjack-v2",
+  "version": "1.0.0",
+  "description": "Casino Royale V2 — Multiplayer Blackjack API with session management",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node lib/test-connection.js",
+    "test:sessions": "node lib/test-sessions.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "uuid": "^11.0.0"
+  }
+}
