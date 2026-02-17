@@ -18,6 +18,8 @@ const { calculateHandValue } = require("./gameEngine");
 const history = require("./gameHistory");
 const config = require("./config");
 const { ValidationError } = require("./errors");
+const db = require("./db");
+const { isSupabaseEnabled } = require("./supabaseClient");
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -154,6 +156,23 @@ function createSession(options = {}) {
         houseBalance: config.DEFAULT_HOUSE_BALANCE,
     });
 
+    // Persist to Supabase (async, fire-and-forget)
+    if (isSupabaseEnabled()) {
+        db.findOrCreatePlayer(playerName).then((player) => {
+            // Store the DB player ID on the session for later use
+            session.dbPlayerId = player?.id || null;
+
+            db.createSession({
+                sessionId: session.id,
+                playerName,
+                playerId: session.dbPlayerId,
+                startingBalance,
+            }).catch((err) =>
+                console.error("[DB] Failed to persist session:", err.message)
+            );
+        });
+    }
+
     const rawState = session.game.toDict();
     return enrichGameState(rawState, session);
 }
@@ -202,9 +221,26 @@ function listSessions() {
  * @returns {{ destroyed: boolean, sessionId: string }}
  */
 function destroySession(sessionId) {
+    // Get the session before destroying (need balance for DB)
+    let finalBalance = 0;
+    try {
+        const session = sessionManager.get(sessionId);
+        finalBalance = session.game.tracker.getPlayerBalance();
+    } catch {
+        // Session may already be expired
+    }
+
     // Get final stats before destroying
     const finalStats = history.getSessionStats(sessionId);
     const destroyed = sessionManager.destroy(sessionId);
+
+    // Mark session as completed in Supabase
+    if (isSupabaseEnabled()) {
+        db.endSession(sessionId, finalBalance).catch((err) =>
+            console.error("[DB] Failed to end session:", err.message)
+        );
+    }
+
     // Keep history around for a bit (don't clear immediately)
     // so the frontend can show a "game over" summary
     return { destroyed, sessionId, finalStats };
@@ -339,8 +375,36 @@ function housePlay(sessionId) {
     const rawState = session.game.toDict();
     const enriched = enrichGameState(rawState, session);
 
-    // Record the completed round in history
+    // Record the completed round in memory
     history.recordRound(sessionId, enriched, balanceBefore);
+
+    // Persist round to Supabase (async, fire-and-forget)
+    if (isSupabaseEnabled()) {
+        const balanceAfter = session.game.tracker.getPlayerBalance();
+        const payout = balanceAfter - balanceBefore;
+
+        db.recordRound({
+            sessionId,
+            playerId: session.dbPlayerId || null,
+            roundNumber: session.roundsPlayed,
+            outcome: enriched.computed.outcome,
+            playerHand: [...rawState.player.cards],
+            houseHand: [...rawState.house.cards],
+            playerHandValue: enriched.computed.playerHandValue,
+            houseHandValue: enriched.computed.houseHandValue,
+            bet: rawState.player.bet,
+            payout,
+            balanceAfter,
+        }).catch((err) =>
+            console.error("[DB] Failed to persist round:", err.message)
+        );
+
+        // Update session state in DB
+        db.updateSession(sessionId, balanceAfter, session.roundsPlayed).catch(
+            (err) =>
+                console.error("[DB] Failed to update session:", err.message)
+        );
+    }
 
     return enriched;
 }

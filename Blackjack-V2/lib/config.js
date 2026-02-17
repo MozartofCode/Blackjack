@@ -56,6 +56,13 @@ const config = {
 
     /** Minimum bet amount */
     MINIMUM_BET: 10,
+
+    // ── Supabase ────────────────────────────────────────────────────────────────
+    /** Supabase project URL */
+    SUPABASE_URL: process.env.SUPABASE_URL || "",
+
+    /** Supabase service role key (server-side only — never expose to frontend!) */
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
 };
 
 module.exports = config;

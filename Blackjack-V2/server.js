@@ -5,11 +5,23 @@
  * It handles routing, request parsing, error formatting, CORS, rate
  * limiting, security headers, and graceful shutdown.
  *
+ * Infrastructure Patterns:
+ * ─────────────────────────────────────────────────────────────────────
+ * • Request correlation IDs  — trace any request through the entire system
+ * • Structured JSON logging  — queryable logs for production debugging
+ * • Circuit breaker          — fail-fast when Supabase is down
+ * • Response time metrics    — p50/p95/p99 per-endpoint tracking
+ * • TTL cache                — in-process cache for DB query results
+ * • Rate limiting            — per-IP request throttling
+ * • Graceful shutdown        — drain connections before exit
+ *
  * API Overview:
  * ─────────────────────────────────────────────────────────────────────
  * Health & Info
- *   GET    /api/health                        — Server health check
+ *   GET    /api/health                        — Server health check (deep)
  *   GET    /api/stats                         — Global server statistics
+ *   GET    /api/metrics                       — Response time metrics
+ *   GET    /api/cache-stats                   — Cache performance
  *
  * Session Management
  *   POST   /api/sessions                      — Create a new game session
@@ -30,6 +42,8 @@
  * History & Stats
  *   GET    /api/game/:sessionId/history       — Round-by-round history
  *   GET    /api/game/:sessionId/stats         — Session win/loss stats
+ *   GET    /api/leaderboard                   — Top players from DB
+ *   GET    /api/stats/db                      — All-time persistent stats
  * ─────────────────────────────────────────────────────────────────────
  */
 
@@ -40,6 +54,14 @@ const rateLimit = require("express-rate-limit");
 const gameService = require("./lib/gameService");
 const config = require("./lib/config");
 const { AppError } = require("./lib/errors");
+const db = require("./lib/db");
+const { isSupabaseEnabled, dbCircuitBreaker } = require("./lib/supabaseClient");
+const cacheLayer = require("./lib/cache");
+const logger = require("./lib/logger");
+
+// ─── Middleware ───────────────────────────────────────────────────────────────
+const requestIdMiddleware = require("./lib/middleware/requestId");
+const { responseMetricsMiddleware, getMetrics } = require("./lib/middleware/responseMetrics");
 
 const app = express();
 
@@ -53,12 +75,46 @@ app.use(
     cors({
         origin: config.CORS_ORIGINS,
         methods: ["GET", "POST", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
+        exposedHeaders: ["X-Request-ID", "X-Response-Time"],
         maxAge: 86400, // Cache preflight for 24h
     })
 );
 
 app.use(express.json({ limit: "10kb" })); // Limit body size to prevent abuse
+
+// ─── Observability Middleware ─────────────────────────────────────────────────
+
+// 1. Assign correlation ID to every request (must come first)
+app.use(requestIdMiddleware());
+
+// 2. Track response times and status codes
+app.use(responseMetricsMiddleware());
+
+// 3. Structured request logging (replaces console.log)
+app.use((req, res, next) => {
+    const start = Date.now();
+
+    res.on("finish", () => {
+        const duration = Date.now() - start;
+        const meta = {
+            requestId: req.id,
+            status: res.statusCode,
+            duration: `${duration}ms`,
+        };
+
+        // Log at appropriate level based on status code
+        if (res.statusCode >= 500) {
+            req.log.error("Request completed", meta);
+        } else if (res.statusCode >= 400) {
+            req.log.warn("Request completed", meta);
+        } else {
+            req.log.info("Request completed", meta);
+        }
+    });
+
+    next();
+});
 
 // Rate limiting — prevent abuse
 const limiter = rateLimit({
@@ -73,17 +129,39 @@ const limiter = rateLimit({
 });
 app.use("/api/", limiter);
 
-// Request logging (lightweight)
-app.use((req, _res, next) => {
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] ${req.method} ${req.url}`);
-    next();
-});
+// ─── Health & Observability Endpoints ─────────────────────────────────────────
 
-// ─── Health & Global Stats ────────────────────────────────────────────────────
-
+/**
+ * GET /api/health
+ * Deep health check — reports status of all dependencies.
+ *
+ * Interview talking point: Liveness vs Readiness probes
+ * - Liveness:  "Is the process alive?" (just return 200)
+ * - Readiness: "Can it serve traffic?" (check dependencies)
+ * This endpoint works as a readiness probe.
+ */
 app.get("/api/health", (_req, res) => {
-    res.json(gameService.healthCheck());
+    const circuitState = dbCircuitBreaker.getStats();
+    const health = {
+        ...gameService.healthCheck(),
+        dependencies: {
+            supabase: {
+                configured: isSupabaseEnabled(),
+                circuitBreaker: circuitState.state,
+                failureCount: circuitState.failureCount,
+            },
+            cache: cacheLayer.getStats(),
+        },
+        uptime: Math.round(process.uptime()),
+        memory: {
+            rss: `${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`,
+            heap: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+        },
+    };
+
+    // If circuit breaker is OPEN, signal degraded health
+    const httpStatus = circuitState.state === "OPEN" ? 503 : 200;
+    res.status(httpStatus).json(health);
 });
 
 /**
@@ -92,6 +170,31 @@ app.get("/api/health", (_req, res) => {
  */
 app.get("/api/stats", (_req, res) => {
     res.json(gameService.getGlobalStats());
+});
+
+/**
+ * GET /api/metrics
+ * Returns response time percentiles (p50/p95/p99), error rates,
+ * per-route breakdown, and memory usage.
+ *
+ * Interview talking point: This is what you'd feed into Grafana/Datadog
+ * dashboards. The p99 tells you the worst-case latency experienced by
+ * 1% of your users — much more useful than averages.
+ */
+app.get("/api/metrics", (_req, res) => {
+    res.json(getMetrics());
+});
+
+/**
+ * GET /api/cache-stats
+ * Returns cache performance metrics (hits, misses, hit rate, keys).
+ */
+app.get("/api/cache-stats", (_req, res) => {
+    res.json({
+        cache: cacheLayer.getStats(),
+        circuitBreaker: dbCircuitBreaker.getStats(),
+        supabaseEnabled: isSupabaseEnabled(),
+    });
 });
 
 // ─── Session Routes ───────────────────────────────────────────────────────────
@@ -109,6 +212,10 @@ app.post("/api/sessions", (req, res, next) => {
     try {
         const { playerName, startingBalance } = req.body || {};
         const state = gameService.createSession({ playerName, startingBalance });
+        req.log.info("Session created", {
+            sessionId: state.session.id,
+            playerName: state.session.playerName,
+        });
         res.status(201).json(state);
     } catch (err) {
         next(err);
@@ -147,6 +254,7 @@ app.get("/api/sessions/:sessionId", (req, res, next) => {
 app.delete("/api/sessions/:sessionId", (req, res, next) => {
     try {
         const result = gameService.destroySession(req.params.sessionId);
+        req.log.info("Session destroyed", { sessionId: req.params.sessionId });
         res.json(result);
     } catch (err) {
         next(err);
@@ -308,10 +416,45 @@ app.get("/api/game/:sessionId/stats", (req, res, next) => {
     }
 });
 
+/**
+ * GET /api/leaderboard
+ * Returns the top players sorted by net profit.
+ * Query: ?limit=10 (default: 10)
+ */
+app.get("/api/leaderboard", async (req, res, next) => {
+    try {
+        const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100);
+        const data = await db.getLeaderboard(limit);
+        res.json({ leaderboard: data, count: data.length });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * GET /api/stats/db
+ * Returns global stats from the database (persistent, all-time).
+ */
+app.get("/api/stats/db", async (_req, res, next) => {
+    try {
+        const data = await db.getGlobalStats();
+        if (!data) {
+            return res.json({
+                message: "Database not configured. Using in-memory stats.",
+                stats: gameService.getGlobalStats(),
+            });
+        }
+        res.json(data);
+    } catch (err) {
+        next(err);
+    }
+});
+
 // ─── Error Handling Middleware ─────────────────────────────────────────────────
 
 // 404 handler
-app.use((_req, res) => {
+app.use((req, res) => {
+    req.log.warn("Route not found");
     res.status(404).json({
         error: true,
         message:
@@ -320,15 +463,18 @@ app.use((_req, res) => {
 });
 
 // Global error handler — reads status from custom AppError classes
-// No more fragile string matching!
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
     const status = err instanceof AppError ? err.status : 500;
     const message = err.message || "Internal server error";
 
     if (status >= 500) {
-        console.error(`[ERROR ${status}] ${message}`, err.stack);
+        (req.log || logger).error("Unhandled error", {
+            status,
+            error: message,
+            stack: err.stack,
+        });
     } else {
-        console.error(`[ERROR ${status}] ${message}`);
+        (req.log || logger).warn("Client error", { status, error: message });
     }
 
     res.status(status).json({
@@ -342,25 +488,28 @@ app.use((err, _req, res, _next) => {
 let server;
 
 function gracefulShutdown(signal) {
-    console.log(`\n[${signal}] Shutting down gracefully...`);
+    logger.info(`Shutting down gracefully`, { signal });
 
     // Stop accepting new connections
     if (server) {
         server.close(() => {
-            console.log("[shutdown] HTTP server closed.");
+            logger.info("HTTP server closed");
         });
     }
 
     // Stop session cleanup timer
     const { sessionManager } = require("./lib/sessionManager");
     sessionManager.shutdown();
-    console.log(
-        `[shutdown] Cleaned up ${sessionManager.activeCount} active session(s).`
-    );
+    logger.info("Sessions cleaned up", {
+        activeSessions: sessionManager.activeCount,
+    });
+
+    // Flush cache
+    cacheLayer.flushAll();
 
     // Give in-flight requests a moment to finish
     setTimeout(() => {
-        console.log("[shutdown] Process exiting.");
+        logger.info("Process exiting");
         process.exit(0);
     }, 1000);
 }
@@ -382,7 +531,7 @@ server = app.listen(config.PORT, () => {
         `║  Health:      http://localhost:${config.PORT}/api/health    ║`
     );
     console.log(
-        `║  Stats:       http://localhost:${config.PORT}/api/stats     ║`
+        `║  Metrics:     http://localhost:${config.PORT}/api/metrics   ║`
     );
     console.log(
         `║  Max seats:   ${String(config.MAX_SESSIONS).padEnd(35)}║`
@@ -397,12 +546,20 @@ server = app.listen(config.PORT, () => {
         `║  CORS:        ${String(config.CORS_ORIGINS === "*" ? "open (dev)" : config.CORS_ORIGINS.length + " origin(s)").padEnd(35)}║`
     );
     console.log("╠══════════════════════════════════════════════════╣");
+    console.log("║  ✅ Request correlation IDs (X-Request-ID)       ║");
+    console.log("║  ✅ Structured JSON logging                      ║");
+    console.log("║  ✅ Response time metrics (p50/p95/p99)          ║");
+    console.log("║  ✅ Circuit breaker (Supabase)                   ║");
+    console.log("║  ✅ In-process TTL cache                         ║");
+    console.log("║  ✅ Rate limiting                                ║");
     console.log("║  ✅ Security headers (Helmet)                    ║");
-    console.log("║  ✅ Rate limiting enabled                        ║");
     console.log("║  ✅ Input sanitization                           ║");
-    console.log("║  ✅ Game history tracking                        ║");
     console.log("║  ✅ Graceful shutdown handler                    ║");
-    console.log("║  ✅ Environment config via .env                  ║");
+    console.log(
+        isSupabaseEnabled()
+            ? "║  ✅ Supabase DB connected                        ║"
+            : "║  ⚠️  Supabase DB not configured (in-memory only)  ║"
+    );
     console.log("╚══════════════════════════════════════════════════╝");
     console.log("");
 });
