@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Manrope', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    min-height: max(884px, 100dvh);
+  }
+}
+
+.felt-bg {
+    background: radial-gradient(circle at center, #0a3a1f 0%, #062010 100%);
+    position: relative;
+}
+
+.felt-bg::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.05;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuAq-KcomDc-fHDjl9yJMz8we68f6xRKGs8Rs5zyEK7uiM78kMWPEoBPhnspfRqhUbJ41Pngmj7DIhS0WjXHNMfVfNtpRJmeITlGTqfk3vqS3J-H0Tsilr5tIqRuRCrL0pfHpQ1o56Y6ILLx8AFeL9RHRutil7cz60aD38EjkTjZwlA_6eYnLcdQ6svGB_gKnUbqjhyCfqlV_PJc1mWj97BwkF7tMUO2wmyp2BUYk2C5_K1p_GZ9e9JOY5bwDinSxsc1Dp_iJwiUsb2s);
+    pointer-events: none;
+}
+
+.glass-card {
+    background: rgba(20, 20, 20, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(244, 192, 37, 0.15);
+}
+
+.gold-glow {
+    box-shadow: 0 0 20px rgba(244, 192, 37, 0.1);
+}
+
+.glass-panel {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.felt-gradient {
+    background: radial-gradient(circle at center, #1a4a35 0%, #0d1f16 100%);
+}
+
+.ticker-scroll {
+    white-space: nowrap;
+    animation: ticker 25s linear infinite;
+}
+
+@keyframes ticker {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+.seat-1 { top: 38%; left: 8%; }
+.seat-2 { top: 52%; left: 6%; }
+.seat-3 { top: 68%; left: 15%; }
+.seat-4 { top: 72%; left: 50%; transform: translateX(-50%); }
+.seat-5 { top: 68%; right: 15%; }
+.seat-6 { top: 52%; right: 6%; }
+.seat-7 { top: 38%; right: 8%; }
+
+.mini-card {
+    width: 24px;
+    height: 36px;
+    border-radius: 3px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+}
