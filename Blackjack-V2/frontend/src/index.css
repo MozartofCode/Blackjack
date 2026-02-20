@@ -1,13 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
-  body {
-    font-family: 'Manrope', sans-serif;
-    -webkit-tap-highlight-color: transparent;
-    min-height: max(884px, 100dvh);
-  }
+    body {
+        font-family: 'Manrope', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        min-height: max(884px, 100dvh);
+    }
 }
 
 .felt-bg {
@@ -55,24 +53,57 @@
 }
 
 @keyframes ticker {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
+    0% {
+        transform: translateX(100%);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
 }
 
-.seat-1 { top: 38%; left: 8%; }
-.seat-2 { top: 52%; left: 6%; }
-.seat-3 { top: 68%; left: 15%; }
-.seat-4 { top: 72%; left: 50%; transform: translateX(-50%); }
-.seat-5 { top: 68%; right: 15%; }
-.seat-6 { top: 52%; right: 6%; }
-.seat-7 { top: 38%; right: 8%; }
+.seat-1 {
+    top: 38%;
+    left: 8%;
+}
+
+.seat-2 {
+    top: 52%;
+    left: 6%;
+}
+
+.seat-3 {
+    top: 68%;
+    left: 15%;
+}
+
+.seat-4 {
+    top: 72%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.seat-5 {
+    top: 68%;
+    right: 15%;
+}
+
+.seat-6 {
+    top: 52%;
+    right: 6%;
+}
+
+.seat-7 {
+    top: 38%;
+    right: 8%;
+}
 
 .mini-card {
     width: 24px;
     height: 36px;
     border-radius: 3px;
     background: white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;

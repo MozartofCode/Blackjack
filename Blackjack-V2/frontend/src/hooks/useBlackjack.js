@@ -120,8 +120,17 @@ export const useBlackjack = () => {
             setGameState(data);
             return data;
         } catch (err) {
-            setError(err.response?.data?.message || 'Action failed');
-            throw err; // Let UI handle specific errors
+            // If 404, the session expired or the backend restarted — auto-recover
+            if (err.response?.status === 404) {
+                console.warn('Session not found — backend may have restarted. Returning to lobby.');
+                setSession(null);
+                setGameState(null);
+                localStorage.removeItem('bj_session_id');
+                setError('Session expired. Please rejoin the table.');
+            } else {
+                setError(err.response?.data?.message || 'Action failed');
+            }
+            throw err;
         } finally {
             setLoading(false);
         }

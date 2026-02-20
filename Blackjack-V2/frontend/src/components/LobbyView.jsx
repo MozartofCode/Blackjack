@@ -9,27 +9,7 @@ export default function LobbyView({ onJoin, stats }) {
 
     return (
         <div className="relative flex h-screen w-full flex-col bg-background-dark overflow-hidden felt-bg">
-            {/* Status Bar Ticker */}
-            <div className="z-50 flex w-full items-center justify-between bg-black/60 px-4 py-2 backdrop-blur-md border-b border-primary/10">
-                <div className="flex items-center gap-4 overflow-hidden whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                        </span>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-primary/80">Live API</p>
-                    </div>
-                    <div className="flex gap-4 text-[11px] font-medium text-white/70">
-                        <span>Total Rounds: <span className="text-primary font-bold">{stats?.totalGamesPlayed?.toLocaleString() || '12,402'}</span></span>
-                        <span className="h-3 w-[1px] bg-white/10"></span>
-                        <span>Active Tables: <span className="text-primary font-bold">{stats?.activeSessions || '48'}</span></span>
-                    </div>
-                </div>
-                <div className="flex items-center gap-1 text-[10px] font-semibold text-green-500 uppercase tracking-tighter">
-                    <span className="material-symbols-outlined text-[14px]">sensors</span>
-                    Online
-                </div>
-            </div>
+
 
             {/* Header */}
             <div className="flex items-center justify-between p-6">
@@ -87,9 +67,9 @@ export default function LobbyView({ onJoin, stats }) {
                     </div>
 
                     {/* Sit at Table Button */}
-                    <button type="submit" className="group relative flex w-full items-center justify-center overflow-hidden rounded-lg bg-primary px-6 py-4 transition-transform active:scale-95">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                        <span className="text-base font-black uppercase tracking-widest text-background-dark">Sit at Table</span>
+                    <button type="submit" className="group relative flex w-full items-center justify-center overflow-hidden rounded-lg bg-white px-6 py-4 transition-transform active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                        <span className="text-base font-black uppercase tracking-widest text-black">Sit at Table</span>
                     </button>
                 </form>
 

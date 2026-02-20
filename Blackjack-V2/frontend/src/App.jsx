@@ -59,7 +59,7 @@ function App() {
 
                 case 'stand':
                     await stand();
-                    await houseTurn();
+                    // House turn triggered by GameTable after visual bots play
                     break;
 
                 case 'double':
@@ -68,14 +68,16 @@ function App() {
                     // Only stand/finish if didn't bust on the hit
                     if (!hitState.computed.isPlayerBust) {
                         await stand();
-                        await houseTurn();
                     }
+                    // House turn triggered by GameTable after visual bots play
+                    break;
+
+                case 'house':
+                    await houseTurn();
                     break;
 
                 case 'leave':
-                    if (confirm("Are you sure you want to cash out?")) {
-                        await leaveSession();
-                    }
+                    await leaveSession();
                     break;
 
                 default:
@@ -86,15 +88,6 @@ function App() {
             // Error is already captured in hook state
         }
     };
-
-    // Auto-Resolve House Turn if Player Busts
-    // (In Blackjack, if player busts, house wins immediately, 
-    // but we often call house() to ensure 'isRoundOver' state is set correctly in backend if strictly modeled)
-    useEffect(() => {
-        if (gameState?.computed?.isPlayerBust && !gameState?.computed?.isRoundOver) {
-            houseTurn().catch(e => console.error("Auto-resolve failed", e));
-        }
-    }, [gameState?.computed?.isPlayerBust, gameState?.computed?.isRoundOver]);
 
     // ─── Render ────────────────────────────────────────────────────────
 
