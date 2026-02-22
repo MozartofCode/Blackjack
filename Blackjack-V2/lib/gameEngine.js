@@ -221,41 +221,30 @@ class House {
             this.tracker.addToPlayer(payout);
             this.tracker.subFromHouse(payout);
         } else {
-            const houseVal = this.calculateHandVal();
+            // Dealer must hit until 17+
+            while (this.calculateHandVal() < 17) {
+                game.dealSingleCard("house");
+            }
 
-            if (houseVal > playerVal) {
-                // House already beats player without hitting
+            const finalHouseVal = this.calculateHandVal();
+            const finalPlayerVal = game.player.calculateHandVal();
+
+            if (finalHouseVal > 21) {
+                // House bust
+                this.tracker.subFromHouse(bet);
+                this.tracker.addToPlayer(bet);
+            } else if (finalHouseVal > finalPlayerVal) {
+                // House wins
                 this.tracker.addToHouse(bet);
                 this.tracker.subFromPlayer(bet);
-            } else if (houseVal === playerVal) {
-                // Push — no money moves
+            } else if (finalHouseVal < finalPlayerVal) {
+                // Player wins
+                this.tracker.subFromHouse(bet);
+                this.tracker.addToPlayer(bet);
+            } else {
+                // Push
                 this.tracker.addToHouse(0);
                 this.tracker.addToPlayer(0);
-            } else {
-                // House is behind — must hit until 17+ or beats player
-                while (
-                    this.calculateHandVal() < 17 &&
-                    this.calculateHandVal() < game.player.calculateHandVal()
-                ) {
-                    game.dealSingleCard("house");
-                }
-
-                const finalHouseVal = this.calculateHandVal();
-                const finalPlayerVal = game.player.calculateHandVal();
-
-                if (finalHouseVal > 21 || finalHouseVal < finalPlayerVal) {
-                    // House bust or still lower — player wins
-                    this.tracker.subFromHouse(bet);
-                    this.tracker.addToPlayer(bet);
-                } else if (finalHouseVal === finalPlayerVal) {
-                    // Push
-                    this.tracker.addToHouse(0);
-                    this.tracker.addToPlayer(0);
-                } else if (finalHouseVal > finalPlayerVal) {
-                    // House wins
-                    this.tracker.addToHouse(bet);
-                    this.tracker.subFromPlayer(bet);
-                }
             }
         }
     }

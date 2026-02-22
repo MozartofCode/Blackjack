@@ -134,15 +134,28 @@ function enrichGameState(rawState, session) {
  * @param {Object} [options]
  * @param {string} [options.playerName] - Display name for the player.
  * @param {number} [options.startingBalance] - Starting chips.
- * @returns {Object} Enriched initial game state with session info.
+ * @returns {Promise<Object>} Enriched initial game state with session info.
  */
-function createSession(options = {}) {
+async function createSession(options = {}) {
     // Sanitize inputs
     const playerName = sanitizePlayerName(options.playerName);
+    let player = null;
 
-    const startingBalance = options.startingBalance
+    // 1. Fetch persistent player data if available
+    if (isSupabaseEnabled()) {
+        player = await db.findOrCreatePlayer(playerName);
+    }
+
+    // 2. Determine starting balance
+    // Priority: Explicit buy-in > Persistent balance > Default
+    let startingBalance = options.startingBalance
         ? Number(options.startingBalance)
-        : config.DEFAULT_PLAYER_BALANCE;
+        : (player?.balance ? Number(player.balance) : config.DEFAULT_PLAYER_BALANCE);
+
+    // Sanity check: Can't buy in with more than you have (unless you're new)
+    if (player && startingBalance > (Number(player.balance) || 1000000)) {
+        startingBalance = Number(player.balance);
+    }
 
     if (!Number.isFinite(startingBalance) || startingBalance <= 0) {
         throw new ValidationError(
@@ -156,21 +169,18 @@ function createSession(options = {}) {
         houseBalance: config.DEFAULT_HOUSE_BALANCE,
     });
 
-    // Persist to Supabase (async, fire-and-forget)
-    if (isSupabaseEnabled()) {
-        db.findOrCreatePlayer(playerName).then((player) => {
-            // Store the DB player ID on the session for later use
-            session.dbPlayerId = player?.id || null;
+    // 3. Persist session linkage
+    if (isSupabaseEnabled() && player) {
+        session.dbPlayerId = player.id;
 
-            db.createSession({
-                sessionId: session.id,
-                playerName,
-                playerId: session.dbPlayerId,
-                startingBalance,
-            }).catch((err) =>
-                console.error("[DB] Failed to persist session:", err.message)
-            );
-        });
+        await db.createSession({
+            sessionId: session.id,
+            playerName,
+            playerId: player.id,
+            startingBalance,
+        }).catch((err) =>
+            console.error("[DB] Failed to persist session:", err.message)
+        );
     }
 
     const rawState = session.game.toDict();
@@ -417,6 +427,15 @@ function housePlay(sessionId) {
  */
 function startNewRound(sessionId) {
     const session = sessionManager.get(sessionId);
+
+    // Rule: Kicked out if 0 money
+    const currentBalance = session.game.tracker.getPlayerBalance();
+    if (currentBalance <= 0) {
+        throw new ValidationError(
+            "You have zero money left and have been automatically removed from the table."
+        );
+    }
+
     session.game.initializeNewRound();
     session.roundsPlayed += 1;
     const rawState = session.game.toDict();

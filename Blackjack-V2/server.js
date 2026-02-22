@@ -44,6 +44,12 @@
  *   GET    /api/game/:sessionId/stats         — Session win/loss stats
  *   GET    /api/leaderboard                   — Top players from DB
  *   GET    /api/stats/db                      — All-time persistent stats
+ *
+ * Bot Management
+ *   GET    /api/bots                          — List all bots
+ *   GET    /api/bots/:botId/profile           — Get bot profile/stats
+ *   GET    /api/bots/:botId/performance       — Get bot performance history
+ *   POST   /api/bots/:botId/record-round      — Record a bot's round result
  * ─────────────────────────────────────────────────────────────────────
  */
 
@@ -197,6 +203,92 @@ app.get("/api/cache-stats", (_req, res) => {
     });
 });
 
+// ─── Auth & Player Routes ─────────────────────────────────────────────────────
+
+/**
+ * POST /api/auth/register
+ * Registers a new player with a name and 4-digit PIN.
+ * Body: { playerName: string, pin: string }
+ */
+app.post("/api/auth/register", async (req, res, next) => {
+    try {
+        const { playerName, pin } = req.body || {};
+        if (!playerName || !pin) {
+            return res.status(400).json({ error: true, message: "playerName and pin are required." });
+        }
+        if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+            return res.status(400).json({ error: true, message: "PIN must be exactly 4 digits." });
+        }
+        if (playerName.length < 2 || playerName.length > 20) {
+            return res.status(400).json({ error: true, message: "Player name must be 2-20 characters." });
+        }
+
+        const player = await db.registerPlayer(playerName.trim(), pin);
+        if (!player) {
+            return res.status(503).json({ error: true, message: "Database is temporarily unavailable. Please try again later." });
+        }
+        req.log.info("Player registered", { playerName });
+        res.status(201).json({ player });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * POST /api/auth/login
+ * Logs in with player name + PIN.
+ * Body: { playerName: string, pin: string }
+ */
+app.post("/api/auth/login", async (req, res, next) => {
+    try {
+        const { playerName, pin } = req.body || {};
+        if (!playerName || !pin) {
+            return res.status(400).json({ error: true, message: "playerName and pin are required." });
+        }
+
+        const player = await db.loginPlayer(playerName.trim(), pin);
+        if (!player) {
+            return res.status(503).json({ error: true, message: "Database is temporarily unavailable. Please try again later." });
+        }
+        req.log.info("Player logged in", { playerName });
+        res.json({ player });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * GET /api/players/:playerId/profile
+ * Gets a player's full profile with lifetime stats.
+ */
+app.get("/api/players/:playerId/profile", async (req, res, next) => {
+    try {
+        const player = await db.getPlayerProfile(req.params.playerId);
+        if (!player) {
+            return res.status(404).json({ error: true, message: "Player not found." });
+        }
+        res.json({ player });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * GET /api/players/:playerId/history
+ * Gets paginated gameplay history for a player.
+ * Query: ?limit=50&offset=0
+ */
+app.get("/api/players/:playerId/history", async (req, res, next) => {
+    try {
+        const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+        const offset = parseInt(req.query.offset, 10) || 0;
+        const result = await db.getPlayerHistory(req.params.playerId, limit, offset);
+        res.json(result);
+    } catch (err) {
+        next(err);
+    }
+});
+
 // ─── Session Routes ───────────────────────────────────────────────────────────
 
 /**
@@ -208,10 +300,10 @@ app.get("/api/cache-stats", (_req, res) => {
  *
  * Returns: Enriched game state with session info.
  */
-app.post("/api/sessions", (req, res, next) => {
+app.post("/api/sessions", async (req, res, next) => {
     try {
         const { playerName, startingBalance } = req.body || {};
-        const state = gameService.createSession({ playerName, startingBalance });
+        const state = await gameService.createSession({ playerName, startingBalance });
         req.log.info("Session created", {
             sessionId: state.session.id,
             playerName: state.session.playerName,
@@ -450,6 +542,89 @@ app.get("/api/stats/db", async (_req, res, next) => {
     }
 });
 
+// ─── Bot Routes ───────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/bots
+ * Lists all bots.
+ */
+app.get("/api/bots", async (_req, res, next) => {
+    try {
+        const bots = await db.getBots();
+        res.json({ bots });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * GET /api/bots/:botId/profile
+ * Gets a bot's profile.
+ */
+app.get("/api/bots/:botId/profile", async (req, res, next) => {
+    try {
+        const botId = parseInt(req.params.botId, 10);
+        const bot = await db.getBotProfile(botId);
+        if (!bot) {
+            return res.status(404).json({ error: true, message: "Bot not found." });
+        }
+        res.json({ bot });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * GET /api/bots/:botId/performance
+ * Gets a bot's performance history.
+ */
+app.get("/api/bots/:botId/performance", async (req, res, next) => {
+    try {
+        const botId = parseInt(req.params.botId, 10);
+        const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+        const history = await db.getBotPerformance(botId, limit);
+        res.json({ history });
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * POST /api/bots/:botId/record-round
+ * Records a bot's round result.
+ */
+app.post("/api/bots/:botId/record-round", async (req, res, next) => {
+    try {
+        const botId = parseInt(req.params.botId, 10);
+        const {
+            payout,
+            outcome,
+            handValue,
+            houseValue,
+            action,
+            bet,
+            othersHandValues,
+            houseUpCard
+        } = req.body;
+
+        await db.recordBotRound({
+            botId,
+            payout,
+            outcome,
+            handValue,
+            houseValue,
+            action,
+            bet,
+            othersHandValues,
+            houseUpCard
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        next(err);
+    }
+});
+
 // ─── Error Handling Middleware ─────────────────────────────────────────────────
 
 // 404 handler
@@ -464,7 +639,7 @@ app.use((req, res) => {
 
 // Global error handler — reads status from custom AppError classes
 app.use((err, req, res, _next) => {
-    const status = err instanceof AppError ? err.status : 500;
+    const status = err.status || (err instanceof AppError ? err.status : 500);
     const message = err.message || "Internal server error";
 
     if (status >= 500) {

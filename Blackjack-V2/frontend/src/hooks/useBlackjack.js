@@ -147,8 +147,38 @@ export const useBlackjack = () => {
         // We'll let the UI handle this check based on new gameState
     };
     const houseTurn = () => performAction('house');
+    const startNewRound = () => performAction('new-round');
 
-    // 3. Polling (Stats & Health)
+    // 4. Bot Management
+    const fetchBots = useCallback(async () => {
+        try {
+            const { data } = await api.get('/api/bots');
+            return data.bots || [];
+        } catch (err) {
+            console.error("Failed to fetch bots", err);
+            return [];
+        }
+    }, []);
+
+    const recordBotRound = async (botId, roundData) => {
+        try {
+            await api.post(`/api/bots/${botId}/record-round`, roundData);
+        } catch (err) {
+            console.error(`Failed to record round for bot ${botId}`, err);
+        }
+    };
+
+    const getBotHistory = async (botId) => {
+        try {
+            const { data } = await api.get(`/api/bots/${botId}/performance`);
+            return data.history || [];
+        } catch (err) {
+            console.error(`Failed to fetch history for bot ${botId}`, err);
+            return [];
+        }
+    };
+
+    // 5. Polling (Stats & Health)
     const fetchStats = useCallback(async () => {
         try {
             const [statsRes, healthRes] = await Promise.all([
@@ -184,5 +214,9 @@ export const useBlackjack = () => {
         hit,
         stand,
         houseTurn,
+        startNewRound,
+        fetchBots,
+        recordBotRound,
+        getBotHistory,
     };
 };

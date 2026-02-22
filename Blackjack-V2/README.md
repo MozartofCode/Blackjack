@@ -42,7 +42,7 @@ npm run dev
 
 ### 🎨 Frontend (React + Vite)
 - **Cinematic Visuals:** Advanced 3D card dealing animations, "Gold Dust" victory particles, and dynamic ambient lighting.
-- **Simulated Multiplayer:** AI bots (like *S_Vegas*, *King_88*) populate the table, playing hands alongside you to simulate a busy casino floor.
+- **Simulated Multiplayer:** AI bots (like *Bot 1 - Card Counter*, *Bot 6 - RL Bot*) populate the table, playing hands alongside you to simulate a busy casino floor.
 - **Real-Time Telemetry:** Live latency indicator (ping) and direct visibility into backend `X-Request-ID` tracing for debugging.
 - **Robust Architecture:**
   - **Custom Hook (`useBlackjack`)**: Centralized state management for sessions, errors, and polling.

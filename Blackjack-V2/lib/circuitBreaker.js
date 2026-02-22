@@ -138,6 +138,9 @@ class CircuitBreaker {
             return result;
         } catch (err) {
             this._onFailure(err);
+            // If the error has a status, it's likely an intentional business error
+            // (e.g., AuthError, ValidationError). We should propagate it.
+            if (err.status) throw err;
             return fallback;
         }
     }

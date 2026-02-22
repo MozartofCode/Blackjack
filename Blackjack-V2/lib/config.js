@@ -49,7 +49,7 @@ const config = {
 
     // ── Game Defaults ───────────────────────────────────────────────────────────
     /** Default starting balance for a new player */
-    DEFAULT_PLAYER_BALANCE: 10000,
+    DEFAULT_PLAYER_BALANCE: 1000000,
 
     /** Default starting balance for the house */
     DEFAULT_HOUSE_BALANCE: 10000,

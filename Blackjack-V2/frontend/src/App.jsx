@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useBlackjack } from './hooks/useBlackjack';
+import { useAuth } from './hooks/useAuth';
+import LoginView from './components/LoginView';
 import LobbyView from './components/LobbyView';
 import GameTable from './components/GameTable';
+import HistoryView from './components/HistoryView';
 
 // Loading Component
 const LoadingOverlay = () => (
@@ -27,6 +30,20 @@ const ErrorToast = ({ error, requestId, onRetry }) => (
 
 function App() {
     const {
+        player,
+        loading: authLoading,
+        error: authError,
+        history,
+        historyLoading,
+        register,
+        login,
+        logout,
+        refreshProfile,
+        fetchHistory,
+        clearError: clearAuthError,
+    } = useAuth();
+
+    const {
         session,
         gameState,
         createSession,
@@ -39,8 +56,13 @@ function App() {
         requestId,
         globalStats,
         loading,
-        error
+        error,
+        fetchBots,
+        recordBotRound,
+        getBotHistory,
     } = useBlackjack();
+
+    const [view, setView] = useState('lobby'); // 'lobby' | 'history'
 
     // ─── Game Loop Logic ───────────────────────────────────────────────
 
@@ -54,30 +76,29 @@ function App() {
 
                 case 'hit':
                     await hit();
-                    // If hit causes bust, the useEffect below will trigger houseTurn
                     break;
 
                 case 'stand':
                     await stand();
-                    // House turn triggered by GameTable after visual bots play
                     break;
 
                 case 'double':
-                    // Visual Double: Hit once, then Stand.
                     const hitState = await hit();
-                    // Only stand/finish if didn't bust on the hit
                     if (!hitState.computed.isPlayerBust) {
                         await stand();
                     }
-                    // House turn triggered by GameTable after visual bots play
                     break;
 
                 case 'house':
                     await houseTurn();
+                    // Refresh player profile after round ends (stats update)
+                    setTimeout(() => refreshProfile(), 1000);
                     break;
 
                 case 'leave':
                     await leaveSession();
+                    refreshProfile();
+                    setView('lobby');
                     break;
 
                 default:
@@ -85,30 +106,86 @@ function App() {
             }
         } catch (err) {
             console.error("Game Action Error:", err);
-            // Error is already captured in hook state
         }
+    };
+
+    const handleJoin = async (name, buyIn) => {
+        // Use the logged-in player's name
+        await createSession(player?.player_name || name, buyIn);
+    };
+
+    const handleLogout = () => {
+        if (session) {
+            leaveSession();
+        }
+        logout();
+        setView('lobby');
     };
 
     // ─── Render ────────────────────────────────────────────────────────
 
+    // Auth loading
+    if (authLoading) {
+        return (
+            <div className="font-display antialiased text-white bg-background-dark min-h-screen flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    // Not logged in → Show login
+    if (!player) {
+        return (
+            <div className="font-display antialiased text-white bg-background-dark min-h-screen">
+                <LoginView
+                    onLogin={login}
+                    onRegister={register}
+                    error={authError}
+                    clearError={clearAuthError}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="font-display antialiased text-white bg-background-dark min-h-screen">
-            {loading && session && <LoadingOverlay />} {/* Only overlay if mid-game, lobby handles its own */}
+            {loading && session && <LoadingOverlay />}
 
             {error && <ErrorToast error={error} requestId={requestId} onRetry={() => window.location.reload()} />}
 
-            {!session ? (
-                <LobbyView
-                    onJoin={createSession}
-                    stats={globalStats}
+            {/* History View */}
+            {view === 'history' && !session && (
+                <HistoryView
+                    player={player}
+                    history={history}
+                    historyLoading={historyLoading}
+                    fetchHistory={fetchHistory}
+                    onBack={() => setView('lobby')}
                 />
-            ) : (
+            )}
+
+            {/* Lobby View */}
+            {view === 'lobby' && !session && (
+                <LobbyView
+                    onJoin={handleJoin}
+                    stats={globalStats}
+                    player={player}
+                    onLogout={handleLogout}
+                    onHistory={() => setView('history')}
+                />
+            )}
+
+            {/* Game Table */}
+            {session && (
                 <GameTable
                     session={session}
                     gameState={gameState}
                     onAction={handleAction}
                     latency={latency}
                     requestId={requestId}
+                    fetchBots={fetchBots}
+                    recordBotRound={recordBotRound}
+                    getBotHistory={getBotHistory}
                 />
             )}
         </div>

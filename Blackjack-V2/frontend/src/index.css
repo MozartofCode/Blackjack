@@ -62,41 +62,130 @@
     }
 }
 
+/* ── Semicircle Seat Layout ───────────────────────────── */
+/* Even semicircle arc — large avatars, evenly distributed                        */
+/* Seats 1,2,3 = left side, 4 = bottom center, 5,6,7 = right side (mirrored)     */
+
+/* Seats 1,2,3 = left side, 4 = bottom center, 5,6,7 = right side (mirrored)     */
+
 .seat-1 {
-    top: 38%;
-    left: 8%;
+    top: 8%;
+    left: 4%;
 }
 
 .seat-2 {
-    top: 52%;
-    left: 6%;
+    top: 28%;
+    left: 2%;
 }
 
 .seat-3 {
-    top: 68%;
-    left: 15%;
+    top: 52%;
+    left: 10%;
 }
 
 .seat-4 {
-    top: 72%;
+    top: 58%;
     left: 50%;
     transform: translateX(-50%);
 }
 
 .seat-5 {
-    top: 68%;
-    right: 15%;
+    top: 52%;
+    right: 10%;
 }
 
 .seat-6 {
-    top: 52%;
-    right: 6%;
+    top: 28%;
+    right: 2%;
 }
 
 .seat-7 {
-    top: 38%;
-    right: 8%;
+    top: 8%;
+    right: 4%;
 }
+
+/* Bet spot positions — placed toward the table center from each seat */
+.bet-spot-1 {
+    top: 15%;
+    left: 18%;
+}
+
+.bet-spot-2 {
+    top: 32%;
+    left: 14%;
+}
+
+.bet-spot-3 {
+    top: 48%;
+    left: 22%;
+}
+
+.bet-spot-4 {
+    top: 40%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.bet-spot-5 {
+    top: 48%;
+    right: 22%;
+}
+
+.bet-spot-6 {
+    top: 32%;
+    right: 14%;
+}
+
+.bet-spot-7 {
+    top: 15%;
+    right: 18%;
+}
+
+/* Payout animation */
+@keyframes payout-collect {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    40% {
+        transform: scale(1.3);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(120px) scale(0.5);
+        opacity: 0;
+    }
+}
+
+.payout-collect {
+    animation: payout-collect 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Bet toss animation (chip flies to table center) */
+@keyframes chip-toss {
+    0% {
+        transform: scale(0.3) translateY(80px);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.2) translateY(-5px);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+.chip-toss {
+    animation: chip-toss 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+
 
 .mini-card {
     width: 24px;
@@ -109,4 +198,142 @@
     justify-content: center;
     font-size: 10px;
     font-weight: 900;
+}
+
+/* ── Chip Animations ─────────────────────────────────────── */
+
+@keyframes chip-land {
+    0% {
+        transform: translateY(-60px) scale(0.5) rotate(-180deg);
+        opacity: 0;
+    }
+
+    60% {
+        transform: translateY(4px) scale(1.1) rotate(10deg);
+        opacity: 1;
+    }
+
+    80% {
+        transform: translateY(-2px) scale(0.97) rotate(-3deg);
+    }
+
+    100% {
+        transform: translateY(0) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes chip-shimmer {
+
+    0%,
+    100% {
+        box-shadow:
+            0 0 4px rgba(244, 192, 37, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }
+
+    50% {
+        box-shadow:
+            0 0 12px rgba(244, 192, 37, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+}
+
+@keyframes chip-pulse-ring {
+    0% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+@keyframes float-up {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+}
+
+.chip-land-anim {
+    animation: chip-land 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.chip-shimmer {
+    animation: chip-shimmer 2s ease-in-out infinite;
+}
+
+.chip-pulse-ring {
+    animation: chip-pulse-ring 1.5s ease-out infinite;
+}
+
+/* ── Chip Badge (Balance Box) ────────────────────────────── */
+
+.chip-badge {
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.85), rgba(10, 10, 10, 0.95));
+    border: 1px solid rgba(244, 192, 37, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow:
+        0 2px 12px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.chip-badge:hover {
+    border-color: rgba(244, 192, 37, 0.5);
+    box-shadow:
+        0 2px 20px rgba(244, 192, 37, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.chip-badge .chip-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg,
+            #f4c025 0deg, #f4c025 45deg,
+            #1a1a1a 45deg, #1a1a1a 90deg,
+            #f4c025 90deg, #f4c025 135deg,
+            #1a1a1a 135deg, #1a1a1a 180deg,
+            #f4c025 180deg, #f4c025 225deg,
+            #1a1a1a 225deg, #1a1a1a 270deg,
+            #f4c025 270deg, #f4c025 315deg,
+            #1a1a1a 315deg, #1a1a1a 360deg);
+    border: 1.5px solid rgba(244, 192, 37, 0.6);
+    box-shadow: 0 0 6px rgba(244, 192, 37, 0.3);
+    flex-shrink: 0;
+}
+
+/* ── Chip Stack for betting area ─────────────────────────── */
+
+.chip-stack-chip {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    position: relative;
+}
+
+.chip-stack-chip::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }

@@ -58,7 +58,7 @@ async function findOrCreatePlayer(playerName) {
             // Create new player
             const { data: newPlayer, error: createError } = await supabase
                 .from("players")
-                .insert({ player_name: playerName })
+                .insert({ player_name: playerName, balance: 1000000 })
                 .select()
                 .single();
 
@@ -70,6 +70,121 @@ async function findOrCreatePlayer(playerName) {
             return newPlayer;
         }, null); // fallback: null
     }, 60);
+}
+
+/**
+ * Registers a new player with a name and PIN.
+ * @param {string} playerName
+ * @param {string} pin - 4-digit PIN
+ * @returns {Promise<Object|null>}
+ */
+async function registerPlayer(playerName, pin) {
+    if (!isSupabaseEnabled()) return null;
+
+    return dbCircuitBreaker.fire(async () => {
+        // Check if name already exists
+        const { data: existing } = await supabase
+            .from("players")
+            .select("id")
+            .eq("player_name", playerName)
+            .maybeSingle();
+
+        if (existing) {
+            const err = new Error("This player name is already taken");
+            err.status = 409;
+            throw err;
+        }
+
+        const { data, error } = await supabase
+            .from("players")
+            .insert({ player_name: playerName, pin, balance: 1000000 })
+            .select("id, player_name, balance, total_sessions, total_rounds, total_wins, total_losses, total_pushes, total_blackjacks, net_profit, biggest_win, biggest_loss, created_at")
+            .single();
+
+        if (error) throw new Error(`Error registering player: ${error.message}`);
+
+        log.info("Player registered", { playerName });
+        return data;
+    }, null);
+}
+
+/**
+ * Logs in a player by verifying name + PIN.
+ * @param {string} playerName
+ * @param {string} pin
+ * @returns {Promise<Object|null>} Player record or null
+ */
+async function loginPlayer(playerName, pin) {
+    if (!isSupabaseEnabled()) return null;
+
+    return dbCircuitBreaker.fire(async () => {
+        const { data, error } = await supabase
+            .from("players")
+            .select("id, player_name, pin, balance, total_sessions, total_rounds, total_wins, total_losses, total_pushes, total_blackjacks, net_profit, biggest_win, biggest_loss, created_at")
+            .eq("player_name", playerName)
+            .maybeSingle();
+
+        if (error) throw new Error(`Error looking up player: ${error.message}`);
+
+        if (!data) {
+            const err = new Error("We have not recognized this name please register");
+            err.status = 404;
+            throw err;
+        }
+
+        if (data.pin !== pin) {
+            const err = new Error("Incorrect password please try again");
+            err.status = 401;
+            throw err;
+        }
+
+        // Strip PIN from response
+        const { pin: _, ...player } = data;
+        return player;
+    }, null);
+}
+
+/**
+ * Gets a player's full profile with stats.
+ * @param {string} playerId
+ * @returns {Promise<Object|null>}
+ */
+async function getPlayerProfile(playerId) {
+    if (!isSupabaseEnabled()) return null;
+
+    return dbCircuitBreaker.fire(async () => {
+        const { data, error } = await supabase
+            .from("players")
+            .select("id, player_name, balance, total_sessions, total_rounds, total_wins, total_losses, total_pushes, total_blackjacks, net_profit, biggest_win, biggest_loss, created_at")
+            .eq("id", playerId)
+            .single();
+
+        if (error) throw new Error(`Error fetching player profile: ${error.message}`);
+        return data;
+    }, null);
+}
+
+/**
+ * Gets paginated gameplay history for a player.
+ * @param {string} playerId
+ * @param {number} limit
+ * @param {number} offset
+ * @returns {Promise<Object[]>}
+ */
+async function getPlayerHistory(playerId, limit = 50, offset = 0) {
+    if (!isSupabaseEnabled()) return [];
+
+    return dbCircuitBreaker.fire(async () => {
+        const { data, error, count } = await supabase
+            .from("rounds")
+            .select("id, session_id, round_number, outcome, player_hand_value, house_hand_value, bet, payout, balance_after, created_at", { count: "exact" })
+            .eq("player_id", playerId)
+            .order("created_at", { ascending: false })
+            .range(offset, offset + limit - 1);
+
+        if (error) throw new Error(`Error fetching player history: ${error.message}`);
+        return { rounds: data || [], total: count || 0 };
+    }, { rounds: [], total: 0 });
 }
 
 // ─── Session Operations ───────────────────────────────────────────────────────
@@ -266,6 +381,7 @@ async function updatePlayerStats(playerId, outcome, payout) {
         const updates = {
             total_rounds: player.total_rounds + 1,
             net_profit: player.net_profit + payout,
+            balance: (player.balance || 0) + payout,
         };
 
         if (payout > player.biggest_win) updates.biggest_win = payout;
@@ -286,6 +402,137 @@ async function updatePlayerStats(playerId, outcome, payout) {
     } catch (err) {
         log.error("Error updating player stats", { playerId, error: err.message });
     }
+}
+
+// ─── Bot Operations ──────────────────────────────────────────────────────────
+
+/**
+ * Gets all bots from the database.
+ * @returns {Promise<Object[]>}
+ */
+async function getBots() {
+    if (!isSupabaseEnabled()) return [];
+
+    return getOrFetch('bots_list', async () => {
+        return dbCircuitBreaker.fire(async () => {
+            const { data, error } = await supabase
+                .from("bots")
+                .select("*")
+                .order("id", { ascending: true });
+
+            if (error) throw new Error(`Error fetching bots: ${error.message}`);
+            return data || [];
+        }, []);
+    }, 60);
+}
+
+/**
+ * Gets a bot's full profile.
+ * @param {number} botId
+ * @returns {Promise<Object|null>}
+ */
+async function getBotProfile(botId) {
+    if (!isSupabaseEnabled()) return null;
+
+    return dbCircuitBreaker.fire(async () => {
+        const { data, error } = await supabase
+            .from("bots")
+            .select("*")
+            .eq("id", botId)
+            .single();
+
+        if (error) throw new Error(`Error fetching bot profile: ${error.message}`);
+        return data;
+    }, null);
+}
+
+/**
+ * Gets bot performance history.
+ * @param {number} botId
+ * @param {number} limit
+ * @returns {Promise<Object[]>}
+ */
+async function getBotPerformance(botId, limit = 50) {
+    if (!isSupabaseEnabled()) return [];
+
+    return dbCircuitBreaker.fire(async () => {
+        const { data, error } = await supabase
+            .from("bot_performance")
+            .select("*")
+            .eq("bot_id", botId)
+            .order("created_at", { ascending: false })
+            .limit(limit);
+
+        if (error) throw new Error(`Error fetching bot performance: ${error.message}`);
+        return data || [];
+    }, []);
+}
+
+/**
+ * Records a bot's round performance and updates their stats.
+ * 
+ * @param {Object} params
+ * @param {number} params.botId
+ * @param {number} params.payout
+ * @param {string} params.outcome
+ * @param {number} params.handValue
+ * @param {number} params.houseValue
+ * @param {string} params.action
+ * @param {number} params.bet
+ * @param {number[]} params.othersHandValues
+ * @param {string} params.houseUpCard
+ */
+async function recordBotRound({
+    botId,
+    payout,
+    outcome,
+    handValue,
+    houseValue,
+    action,
+    bet,
+    othersHandValues,
+    houseUpCard
+}) {
+    if (!isSupabaseEnabled()) return;
+
+    await dbCircuitBreaker.fire(async () => {
+        // 1. Record performance
+        const { error: perfError } = await supabase.from("bot_performance").insert({
+            bot_id: botId,
+            bot_hand_value: handValue,
+            house_hand_value: houseValue,
+            action_taken: action,
+            bet: bet,
+            payout: payout,
+            others_hand_values: othersHandValues,
+            house_up_card: houseUpCard
+        });
+
+        if (perfError) throw new Error(`Error recording bot performance: ${perfError.message}`);
+
+        // 2. Update bot stats
+        const { data: bot } = await supabase.from("bots").select("*").eq("id", botId).single();
+        if (bot) {
+            const updates = {
+                balance: Number(bot.balance) + payout,
+                total_rounds: bot.total_rounds + 1,
+                net_profit: Number(bot.net_profit) + payout,
+            };
+
+            if (outcome === "player_blackjack") {
+                updates.total_wins = bot.total_wins + 1;
+                updates.total_blackjacks = bot.total_blackjacks + 1;
+            } else if (outcome === "player_win" || outcome === "house_bust") {
+                updates.total_wins = bot.total_wins + 1;
+            } else if (outcome === "house_win" || outcome === "player_bust") {
+                updates.total_losses = bot.total_losses + 1;
+            } else if (outcome === "push") {
+                updates.total_pushes = bot.total_pushes + 1;
+            }
+
+            await supabase.from("bots").update(updates).eq("id", botId);
+        }
+    });
 }
 
 // ─── Query Operations ─────────────────────────────────────────────────────────
@@ -371,6 +618,10 @@ async function getSessionRounds(sessionId) {
 module.exports = {
     // Player
     findOrCreatePlayer,
+    registerPlayer,
+    loginPlayer,
+    getPlayerProfile,
+    getPlayerHistory,
 
     // Session
     createSession,
@@ -379,6 +630,12 @@ module.exports = {
 
     // Round
     recordRound,
+
+    // Bot
+    getBots,
+    getBotProfile,
+    getBotPerformance,
+    recordBotRound,
 
     // Queries
     getLeaderboard,
