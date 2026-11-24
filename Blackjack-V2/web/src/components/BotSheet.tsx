@@ -33,25 +33,17 @@ export function BotSheet({ botId, onClose, bankroll }: { botId: BotId | null; on
             </div>
             <p className="mt-4 text-sm text-ivory/85">{bot.blurb}</p>
             <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-xl bg-white/5 p-3">
-                <dt className="text-[10px] tracking-widest text-ivory/50 uppercase">Trained on</dt>
-                <dd className="mt-0.5 font-semibold">{bot.trainedOn}</dd>
-              </div>
               {bankroll !== undefined && (
                 <div className="rounded-xl bg-white/5 p-3">
-                  <dt className="text-[10px] tracking-widest text-ivory/50 uppercase">At this table</dt>
+                  <dt className="text-[10px] tracking-widest text-ivory/50 uppercase">Chips</dt>
                   <dd className="money mt-0.5 font-semibold text-brass-light">{formatMoney(bankroll)}</dd>
                 </div>
               )}
-              <div className="rounded-xl bg-white/5 p-3">
-                <dt className="text-[10px] tracking-widest text-ivory/50 uppercase">Sim avg profit</dt>
+              <div className={`rounded-xl bg-white/5 p-3 ${bankroll === undefined ? 'col-span-2' : ''}`}>
+                <dt className="text-[10px] tracking-widest text-ivory/50 uppercase">Tested profit</dt>
                 <dd className={`money mt-0.5 font-semibold ${bot.sim.avgProfitPct >= 0 ? 'text-win' : 'text-lose'}`}>
                   {bot.sim.avgProfitPct}%
                 </dd>
-              </div>
-              <div className="rounded-xl bg-white/5 p-3">
-                <dt className="text-[10px] tracking-widest text-ivory/50 uppercase">Hit +30% goal</dt>
-                <dd className="mt-0.5 font-semibold">{bot.sim.timesOver30} / 100 runs</dd>
               </div>
             </dl>
             <button className="btn-ghost mt-5 h-11 w-full" onClick={onClose}>

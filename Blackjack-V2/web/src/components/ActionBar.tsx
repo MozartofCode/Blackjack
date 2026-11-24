@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { type PlayAction, type PublicTable, formatMoney, legalActions, maxBetFor } from '@bj/engine';
-import { basicStrategy, type Waiting } from '@bj/bots';
+import { ACTION_LABEL, basicStrategy, type Waiting } from '@bj/bots';
 import { CHIP_VALUES, ChipFace } from './Chip';
 import type { HumanAction } from '../game/driver';
 import { sfx } from '../lib/sound';
@@ -128,9 +128,6 @@ export function ActionBar({ view, waiting, humanSeat, busy, lastBet, coach, onAc
               Deal <span className="kbd">↵</span>
             </button>
           </div>
-          <p className="text-center text-[11px] text-ivory/45">
-            Tap chips to build your bet · table limits {formatMoney(min)}–{formatMoney(view.config.maxBet)}
-          </p>
         </div>
       </div>
     );
@@ -141,17 +138,17 @@ export function ActionBar({ view, waiting, humanSeat, busy, lastBet, coach, onAc
       <div className={wrap}>
         <div className="mx-auto flex max-w-xl flex-col gap-2">
           <p className="text-center text-sm">
-            Dealer shows an Ace. Take insurance for <b className="text-brass-light">{formatMoney(seat.bet / 2)}</b>? Pays 2:1 if the dealer has blackjack.
+            Insurance for <b className="text-brass-light">{formatMoney(seat.bet / 2)}</b>?
           </p>
           <div className="flex gap-2">
             <button className="btn-ghost h-12 flex-1" disabled={busy} onClick={() => onAct({ type: 'insurance', take: false })}>
-              No thanks <span className="kbd">N</span>
+              No <span className="kbd">N</span>
             </button>
             <button className="btn-brass h-12 flex-1" disabled={busy} onClick={() => onAct({ type: 'insurance', take: true })}>
-              Insure <span className="kbd">Y</span>
+              Yes <span className="kbd">Y</span>
             </button>
           </div>
-          {coach && <p className="text-center text-[11px] text-brass-light">Coach: basic strategy never takes insurance.</p>}
+          {coach && <p className="text-center text-[11px] text-win">Coach: No</p>}
         </div>
       </div>
     );
@@ -190,14 +187,10 @@ export function ActionBar({ view, waiting, humanSeat, busy, lastBet, coach, onAc
       </div>
       <p className="mt-2 h-4 text-center text-[11px] text-ivory/50">
         {hint ? (
-          <span className="text-win">Coach: basic strategy says {hint}</span>
+          <span className="text-win">Coach: {ACTION_LABEL[hint]}</span>
         ) : myTurn ? (
           'Your move'
-        ) : busy ? (
-          'Dealing…'
-        ) : (
-          'Waiting for the table…'
-        )}
+        ) : null}
       </p>
     </div>
   );

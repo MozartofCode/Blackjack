@@ -21,7 +21,7 @@ import {
   predictQ,
   predictTree,
 } from './models.ts';
-import { BOTS, type BotId } from './roster.ts';
+import type { BotId } from './roster.ts';
 import { ACTION_LABEL, MOVE_TO_ACTION, basicStrategy } from './strategy.ts';
 
 /** The exported model weights. Hosts load these however suits them. */
@@ -45,7 +45,7 @@ export function botBet(state: TableState, seatId: number): BotChoice<number> {
   const seat = state.seats[seatId];
   const tc = trueCount(state.runningCount, cardsRemaining(state));
   const amount = hiLoBet(seat.bankroll, tc, state.config);
-  return { value: amount, note: `TC ${tc >= 0 ? '+' : ''}${tc} → $${amount}` };
+  return { value: amount, note: `Bets $${amount}` };
 }
 
 function predict(id: BotId, m: ModelBundle, x: Float64Array): Prediction {
@@ -72,12 +72,11 @@ export function botPlay(state: TableState, seatId: number, models: ModelBundle):
   const hand = seat.hands[state.turn!.hand];
   const upcard = state.dealer.cards[0];
   const legal = legalActions(state);
-  const { total, soft } = handTotal(hand.cards);
-  const label = `${soft ? 'soft ' : ''}${total}`;
+  const { total } = handTotal(hand.cards);
 
   if (id === 'bot1') {
     const action = basicStrategy(hand.cards, upcard, legal);
-    return { value: action, note: `${label}: ${ACTION_LABEL[action]}` };
+    return { value: action, note: ACTION_LABEL[action] };
   }
 
   if (id === 'bot6') {
@@ -85,23 +84,20 @@ export function botPlay(state: TableState, seatId: number, models: ModelBundle):
     const usable = hand.cards.some((c) => rankOf(c) === 'A') ? 1 : 0;
     const p = predictQ(models.q, total, upcardNumber(upcard), usable);
     const action = MOVE_TO_ACTION[p.move];
-    return { value: action, note: `Q-table on ${label}: ${ACTION_LABEL[action]}` };
+    return { value: action, note: ACTION_LABEL[action] };
   }
 
   const firstDecision = hand.cards.length === 2;
   if (!firstDecision) {
     const action: PlayAction = total < 17 ? 'hit' : 'stand';
-    return { value: action, note: `${label}, ${total < 17 ? 'under' : 'at least'} 17: ${ACTION_LABEL[action]}` };
+    return { value: action, note: ACTION_LABEL[action] };
   }
 
   const p = predict(id, models, features(hand.cards, upcard, state.runningCount, hand.bet));
   const wanted = MOVE_TO_ACTION[p.move];
   if (legal.includes(wanted)) {
-    return { value: wanted, note: `${BOTS[id].handle} says ${ACTION_LABEL[wanted]} (${pct(p.confidence)})` };
+    return { value: wanted, note: `${ACTION_LABEL[wanted]} · ${pct(p.confidence)}` };
   }
   const fallback = basicStrategy(hand.cards, upcard, legal);
-  return {
-    value: fallback,
-    note: `Wanted ${ACTION_LABEL[wanted]} (not allowed), so basic strategy: ${ACTION_LABEL[fallback]}`,
-  };
+  return { value: fallback, note: ACTION_LABEL[fallback] };
 }

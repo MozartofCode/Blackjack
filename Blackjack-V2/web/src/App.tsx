@@ -97,7 +97,7 @@ function DailyScreen({ go }: { go: (r: Route) => void }) {
 
   return (
     <>
-      <TableView title={`Daily Table #${dayNumber(day)}`} subtitle={driver.ranked ? 'ranked' : 'offline'} onExit={() => go('home')} onResults={() => setShowResults(true)} />
+      <TableView title={`Daily #${dayNumber(day)}`} subtitle={driver.ranked ? undefined : 'offline'} onExit={() => go('home')} onResults={() => setShowResults(true)} />
       {showResults && driver.humanSeat != null && (
         <Results
           view={display}
@@ -138,12 +138,12 @@ function PracticeScreen({ go }: { go: (r: Route) => void }) {
 
   return (
     <>
-      <TableView title="Practice" subtitle="unranked" coachAvailable onExit={() => go('home')} />
+      <TableView title="Practice" coachAvailable onExit={() => go('home')} />
       {broke && (
         <div className="fixed inset-x-3 bottom-28 z-[60] mx-auto max-w-md rounded-2xl bg-ink/95 p-4 text-center shadow-2xl ring-1 ring-brass/40">
-          <p className="font-bold">Out of chips!</p>
+          <p className="font-bold">Out of chips</p>
           <button className="btn-brass mt-3 h-12 w-full" onClick={() => setSession((s) => s + 1)}>
-            Rebuy $1,000
+            Get $1,000
           </button>
         </div>
       )}

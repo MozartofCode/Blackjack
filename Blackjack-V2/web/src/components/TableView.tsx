@@ -62,10 +62,25 @@ export function TableView({ title, subtitle, coachAvailable, onExit, onResults, 
   const myRank = human != null ? ranked.findIndex((r) => r.id === human) + 1 : 0;
   const maxRounds = view.config.maxRounds;
 
-  // Grid: mobile = bots on one row, you underneath; desktop = one arc row.
+  // Grid: mobile = bots on one row, you underneath; desktop = one row.
   const bots = view.seats.filter((s) => s.id !== human);
   const mobileAreas = human != null ? `'${bots.map((s) => AREAS[s.id]).join(' ')}' '${Array(bots.length).fill(AREAS[human]).join(' ')}'` : `'${bots.map((s) => AREAS[s.id]).join(' ')}'`;
   const desktopAreas = `'${view.seats.map((s) => AREAS[s.id]).join(' ')}'`;
+
+  // Semicircle: each seat is lifted and tilted by where it sits on a circle
+  // (x from -1 at the far left to 1 at the far right). Edges rise toward the
+  // dealer; the middle seat stays lowest.
+  const arc = (index: number, count: number, depth: number, tilt: number) => {
+    const x = count > 1 ? (index / (count - 1)) * 2 - 1 : 0;
+    const lift = depth * (1 - Math.sqrt(1 - x * x));
+    return { y: `${-lift}px`, r: `${-x * tilt}deg` };
+  };
+  const seatStyle = (id: number) => {
+    const d = arc(view.seats.findIndex((s) => s.id === id), view.seats.length, 120, 14);
+    const mobileIndex = bots.findIndex((s) => s.id === id);
+    const m = mobileIndex >= 0 ? arc(mobileIndex, bots.length, 34, 9) : { y: '0px', r: '0deg' };
+    return { ['--my' as string]: m.y, ['--mr' as string]: m.r, ['--dy' as string]: d.y, ['--dr' as string]: d.r };
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -77,9 +92,9 @@ export function TableView({ title, subtitle, coachAvailable, onExit, onResults, 
         <div className="min-w-0 flex-1 leading-tight">
           <div className="truncate font-display text-base font-bold sm:text-lg">{title}</div>
           <div className="truncate text-[11px] text-ivory/55">
-            {maxRounds > 0 ? `Hand ${Math.min(view.round, maxRounds)} of ${maxRounds}` : `Hand ${view.round}`}
+            {maxRounds > 0 ? `Hand ${Math.min(view.round, maxRounds)}/${maxRounds}` : `Hand ${view.round}`}
             {subtitle ? ` · ${subtitle}` : ''}
-            {myRank > 0 && ` · You're #${myRank} of ${ranked.length}`}
+            {myRank > 0 && ` · #${myRank}`}
           </div>
         </div>
         {humanSeat && (
@@ -121,9 +136,6 @@ export function TableView({ title, subtitle, coachAvailable, onExit, onResults, 
 
       {/* Felt */}
       <main className="felt relative flex flex-1 flex-col overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-[42%] hidden text-center font-display md:block text-[11px] tracking-[0.25em] text-brass/35 uppercase sm:text-xs">
-          Blackjack pays 3 to 2 · Dealer stands on soft 17
-        </div>
 
         {/* Shoe */}
         <div className="absolute top-4 right-4 hidden flex-col items-center gap-1 sm:flex" aria-hidden>
@@ -137,12 +149,8 @@ export function TableView({ title, subtitle, coachAvailable, onExit, onResults, 
 
         {coach && view.runningCount !== null && (
           <div className="absolute top-4 left-4 z-10 rounded-xl bg-black/45 px-3 py-2 text-[11px] leading-snug ring-1 ring-white/10">
-            <div className="font-bold text-win">Coach</div>
             <div>
-              Running count <b className="money">{view.runningCount > 0 ? `+${view.runningCount}` : view.runningCount}</b>
-            </div>
-            <div>
-              True count{' '}
+              Count{' '}
               <b className="money">
                 {Math.floor(view.runningCount / Math.max(1, Math.ceil(view.shoe.remaining / 52)))}
               </b>
@@ -153,26 +161,38 @@ export function TableView({ title, subtitle, coachAvailable, onExit, onResults, 
         <div className="relative z-10 flex flex-1 flex-col justify-between gap-2 px-2 pt-3 pb-3 sm:px-6 sm:pt-5">
           <Dealer view={view} />
 
-          <div
-            className="mx-auto grid w-full max-w-5xl items-end gap-x-1 gap-y-3 pt-6 [grid-template-areas:var(--m)] md:[grid-template-areas:var(--d)]"
-            style={{ ['--m' as string]: mobileAreas, ['--d' as string]: desktopAreas, gridAutoColumns: '1fr' }}
-          >
-            {view.seats.map((s) => (
-              <div
-                key={s.id}
-                style={{ gridArea: AREAS[s.id] }}
-                className={s.id === human ? 'md:-mb-1' : 'md:mb-6'}
-              >
-                <SeatView
-                  seat={s}
-                  you={s.id === human}
-                  compact={s.id !== human}
-                  activeHand={view.turn?.seat === s.id ? view.turn.hand : null}
-                  note={notes[s.id]}
-                  onInfo={s.botId ? () => setInfo(s.botId as BotId) : undefined}
-                />
-              </div>
-            ))}
+          <div className="relative mx-auto w-full max-w-5xl">
+            {/* Betting arc painted on the felt */}
+            <svg
+              className="pointer-events-none absolute inset-x-[4%] -top-[6%] h-[105%] w-[92%] md:top-[2%]"
+              viewBox="0 0 100 50"
+              preserveAspectRatio="none"
+              aria-hidden
+            >
+              <path d="M1,1 A49,48 0 0 0 99,1" fill="none" stroke="rgba(212,162,76,.22)" strokeWidth="0.35" vectorEffect="non-scaling-stroke" />
+              <path d="M6,1 A44,40 0 0 0 94,1" fill="none" stroke="rgba(212,162,76,.12)" strokeWidth="0.35" vectorEffect="non-scaling-stroke" strokeDasharray="1 1.5" />
+            </svg>
+            <div
+              className="relative grid w-full items-end gap-x-1 gap-y-3 pt-12 md:pt-32 [grid-template-areas:var(--m)] md:[grid-template-areas:var(--d)]"
+              style={{ ['--m' as string]: mobileAreas, ['--d' as string]: desktopAreas, gridAutoColumns: '1fr' }}
+            >
+              {view.seats.map((s) => (
+                <div
+                  key={s.id}
+                  style={{ gridArea: AREAS[s.id], ...seatStyle(s.id) }}
+                  className="origin-bottom [transform:translateY(var(--my))_rotate(var(--mr))] transition-transform duration-500 md:[transform:translateY(var(--dy))_rotate(var(--dr))]"
+                >
+                  <SeatView
+                    seat={s}
+                    you={s.id === human}
+                    compact={s.id !== human}
+                    activeHand={view.turn?.seat === s.id ? view.turn.hand : null}
+                    note={notes[s.id]}
+                    onInfo={s.botId ? () => setInfo(s.botId as BotId) : undefined}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 

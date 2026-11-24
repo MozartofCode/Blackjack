@@ -79,7 +79,6 @@ export function Results({ view, humanSeat, day, ranked, rankInfo, onLeaderboard,
         className="mx-auto flex min-h-full max-w-md flex-col gap-4 px-4 py-6"
       >
         <div className="text-center">
-          <div className="text-xs font-bold tracking-[0.3em] text-ivory/50 uppercase">{day ? 'Table closed' : 'Session over'}</div>
           <div className={`money mt-1 font-display text-6xl font-black ${profit >= 0 ? 'brass-text' : 'text-lose'}`}>
             {formatMoney(me.bankroll)}
           </div>
@@ -90,15 +89,15 @@ export function Results({ view, humanSeat, day, ranked, rankInfo, onLeaderboard,
           </div>
           {rankInfo && (
             <div className="mt-2 text-sm text-ivory/80">
-              🏆 #{rankInfo.rank} of {rankInfo.players.toLocaleString()} players today
+              🏆 #{rankInfo.rank} of {rankInfo.players.toLocaleString()}
             </div>
           )}
-          {!ranked && day && <div className="mt-2 text-xs text-ivory/50">Offline table · not on the leaderboard</div>}
+          {!ranked && day && <div className="mt-2 text-xs text-ivory/50">Not ranked</div>}
         </div>
 
         <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-bold">You beat {beaten} of {bots.length} bots</span>
+            <span className="text-sm font-bold">Beat {beaten}/{bots.length} bots</span>
             <span className="text-lg">{'🤖'.repeat(beaten)}</span>
           </div>
           <ol className="flex flex-col gap-1.5">
@@ -110,7 +109,7 @@ export function Results({ view, humanSeat, day, ranked, rankInfo, onLeaderboard,
                 <span className="w-5 text-center font-display font-bold text-ivory/60">{i + 1}</span>
                 <Avatar botId={s.botId} you={s.id === humanSeat} size={26} />
                 <span className="flex-1 truncate text-sm font-semibold">
-                  {s.id === humanSeat ? 'You' : BOTS[s.botId as BotId].name}
+                  {s.id === humanSeat ? 'You' : BOTS[s.botId as BotId].handle}
                 </span>
                 <span className={`money text-sm font-bold ${s.bankroll >= start ? 'text-win' : 'text-lose'}`}>{formatMoney(s.bankroll)}</span>
               </li>
@@ -121,7 +120,6 @@ export function Results({ view, humanSeat, day, ranked, rankInfo, onLeaderboard,
         {grid && (
           <div className="rounded-2xl bg-white/5 p-4 text-center ring-1 ring-white/10">
             <div className="text-2xl leading-relaxed tracking-wider break-all">{grid}</div>
-            <div className="mt-1 text-[11px] text-ivory/45">🟩 win · 🟥 loss · ⬜ push · 🟨 blackjack · ✂️ split · 2️⃣/💥 double</div>
           </div>
         )}
 
@@ -129,7 +127,7 @@ export function Results({ view, humanSeat, day, ranked, rankInfo, onLeaderboard,
 
         {day && (
           <button className="btn-brass h-14 text-lg" onClick={share}>
-            {copied ? 'Copied to clipboard!' : 'Share result'}
+            {copied ? 'Copied!' : 'Share'}
           </button>
         )}
         <div className="grid grid-cols-2 gap-2">
@@ -139,24 +137,19 @@ export function Results({ view, humanSeat, day, ranked, rankInfo, onLeaderboard,
             </button>
           )}
           <button className={`btn-ghost h-12 ${onLeaderboard ? '' : 'col-span-2'}`} onClick={onPractice}>
-            Keep practicing
+            Practice
           </button>
         </div>
 
         <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
-          <div className="text-sm font-bold">Strategy review</div>
-          {mistakes.length === 0 ? (
-            <p className="mt-1 text-sm text-ivory/70">Every decision matched basic strategy. Textbook.</p>
-          ) : (
+          <div className="text-sm font-bold">{mistakes.length === 0 ? 'Perfect play ✓' : 'Better plays'}</div>
+          {mistakes.length > 0 && (
             <>
-              <p className="mt-1 text-xs text-ivory/60">
-                {mistakes.length} decision{mistakes.length > 1 ? 's' : ''} differed from basic strategy:
-              </p>
               <ul className="mt-2 flex flex-col gap-1 text-sm">
                 {mistakes.slice(0, 6).map(({ d, best }, i) => (
                   <li key={i} className="flex justify-between gap-2 rounded-lg bg-black/20 px-2 py-1">
                     <span className="text-ivory/70">
-                      Hand {d.round}: {handTotal(d.cards).soft ? 'soft ' : ''}
+                      #{d.round} · {handTotal(d.cards).soft ? 'soft ' : ''}
                       {handTotal(d.cards).total} vs {rankOf(d.upcard) === 'T' ? '10' : rankOf(d.upcard)}
                     </span>
                     <span>
@@ -176,7 +169,7 @@ export function Results({ view, humanSeat, day, ranked, rankInfo, onLeaderboard,
           </div>
         )}
         <button className="mb-4 text-sm text-ivory/60 underline-offset-4 hover:underline" onClick={onHome}>
-          Back to lobby
+          Home
         </button>
       </motion.div>
     </div>

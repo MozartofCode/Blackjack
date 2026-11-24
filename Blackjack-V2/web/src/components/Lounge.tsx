@@ -68,14 +68,13 @@ export function Lounge({ onExit }: { onExit: () => void }) {
 
   return (
     <TableView
-      title="Bot Lounge"
-      subtitle="all six bots, nonstop"
+      title="Watch the bots"
       onExit={onExit}
       footer={
         <div className="safe-bottom border-t border-white/10 bg-ink/85 px-3 pt-3 backdrop-blur-md">
           <div className="mx-auto max-w-3xl">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-bold tracking-[0.2em] text-ivory/50 uppercase">Session profit</span>
+              <span className="text-[11px] font-bold tracking-[0.2em] text-ivory/50 uppercase">Profit</span>
               <button className="btn-ghost h-8 rounded-lg px-3 text-xs" onClick={() => setPaused(!paused)}>
                 {paused ? '▶ Resume' : '❚❚ Pause'}
               </button>

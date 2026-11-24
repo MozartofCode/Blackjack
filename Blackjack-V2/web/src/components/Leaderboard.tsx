@@ -73,7 +73,7 @@ export function NicknameForm({ onSaved }: { onSaved: (n: string) => void }) {
       }}
     >
       <label className="text-sm font-bold" htmlFor="nick">
-        Pick a nickname for the leaderboard
+        Your name
       </label>
       <div className="mt-2 flex gap-2">
         <input
@@ -81,7 +81,7 @@ export function NicknameForm({ onSaved }: { onSaved: (n: string) => void }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           maxLength={16}
-          placeholder="e.g. AceHigh"
+          placeholder="AceHigh"
           className="h-11 min-w-0 flex-1 rounded-xl bg-black/40 px-3 text-ivory ring-1 ring-white/15 outline-none focus:ring-brass-light"
         />
         <button className="btn-brass h-11 px-4" disabled={saving || value.trim().length < 2}>
@@ -162,17 +162,15 @@ export function Leaderboard({ onBack }: { onBack: () => void }) {
           </button>
           <div>
             <h1 className="font-display text-3xl font-black">Leaderboard</h1>
-            <p className="text-xs text-ivory/55">Table #{dayNumber()} · bots compete too</p>
+            <p className="text-xs text-ivory/55">Table #{dayNumber()}</p>
           </div>
         </div>
 
         {!online ? (
           <div className="rounded-2xl bg-black/30 p-4 ring-1 ring-white/10">
-            <p className="text-sm text-ivory/80">
-              The global leaderboard needs the online backend. Here are your results on this device:
-            </p>
+            <p className="text-sm text-ivory/80">Your results</p>
             <ul className="mt-3 flex flex-col gap-1">
-              {local.length === 0 && <li className="text-sm text-ivory/50">No daily tables played yet.</li>}
+              {local.length === 0 && <li className="text-sm text-ivory/50">Nothing yet.</li>}
               {local.map((r) => (
                 <li key={r.day} className="flex items-center justify-between rounded-xl bg-white/[.04] px-3 py-2 text-sm">
                   <span>#{dayNumber(r.day)}</span>
@@ -204,14 +202,11 @@ export function Leaderboard({ onBack }: { onBack: () => void }) {
                 </button>
               ))}
             </div>
-            <p className="-mt-2 text-center text-[11px] text-ivory/45">
-              {tab === 'daily' ? 'Final bankroll after 20 hands' : tab === 'monthly' ? 'Total profit this month' : 'Total profit, all time'}
-            </p>
             {error && <p className="rounded-xl bg-lose/20 p-3 text-sm text-lose">{error}</p>}
             {loading ? (
               <div className="py-10 text-center text-sm text-ivory/50">Loading…</div>
             ) : rows.length === 0 ? (
-              <div className="py-10 text-center text-sm text-ivory/60">Nobody has finished yet. Be the first!</div>
+              <div className="py-10 text-center text-sm text-ivory/60">No scores yet. Be the first!</div>
             ) : (
               <ol className="flex flex-col gap-1">
                 {rows.map((r, i) => (

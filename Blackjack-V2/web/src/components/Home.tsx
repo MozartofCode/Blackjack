@@ -44,12 +44,12 @@ export function Home({ onDaily, onPractice, onLounge, onLeaderboard, online }: P
             <span className="text-ivory">Daily</span>
           </h1>
           <p className="mx-auto mt-4 max-w-xs text-[15px] text-ivory/75">
-            One table a day. 20 hands, $1,000 in chips, and four AI bots trying to finish ahead of you.
+            20 hands. $1,000. Beat the bots.
           </p>
         </motion.div>
 
         <div className="mt-7 rounded-3xl bg-black/30 p-4 ring-1 ring-white/10">
-          <div className="mb-3 text-center text-[11px] font-bold tracking-[0.25em] text-ivory/50 uppercase">Tonight's table</div>
+          <div className="mb-3 text-center text-[11px] font-bold tracking-[0.25em] text-ivory/50 uppercase">Today's table</div>
           <div className="flex items-end justify-center gap-3">
             {[lineup[0], lineup[1]].map((id) => (
               <div key={id} className="flex w-14 flex-col items-center gap-1">
@@ -78,7 +78,7 @@ export function Home({ onDaily, onPractice, onLounge, onLeaderboard, online }: P
             </div>
             <div className="mt-1 text-lg tracking-wider">{today.grid}</div>
             <button className="btn-brass mt-3 h-12 w-full" onClick={onDaily}>
-              View result & share
+              See result
             </button>
             <div className="mt-3 text-sm text-ivory/60">
               Next table in <Countdown className="font-bold text-ivory" />
@@ -89,16 +89,13 @@ export function Home({ onDaily, onPractice, onLounge, onLeaderboard, online }: P
             Take your seat
           </button>
         )}
-        {!online && !today && (
-          <p className="mt-2 text-center text-[11px] text-ivory/45">Offline mode: your result is saved on this device only.</p>
-        )}
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           <button className="btn-ghost h-20 flex-col gap-1 text-sm" onClick={onPractice}>
             <span className="text-xl">🃏</span>Practice
           </button>
           <button className="btn-ghost h-20 flex-col gap-1 text-sm" onClick={onLounge}>
-            <span className="text-xl">🤖</span>Bot Lounge
+            <span className="text-xl">🤖</span>Watch bots
           </button>
           <button className="btn-ghost h-20 flex-col gap-1 text-sm" onClick={onLeaderboard}>
             <span className="text-xl">🏆</span>Leaders
@@ -106,9 +103,7 @@ export function Home({ onDaily, onPractice, onLounge, onLeaderboard, online }: P
         </div>
 
         <p className="mt-auto pt-8 text-center text-[11px] leading-relaxed text-ivory/40">
-          Play money only. No real-money gambling.
-          <br />
-          Bots by Bertan Berker: basic strategy, neural nets, trees, forests and Q-learning.
+          Play money only.
         </p>
       </div>
       <StatsModal open={stats} onClose={() => setStats(false)} />
