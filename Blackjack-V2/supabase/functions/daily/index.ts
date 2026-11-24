@@ -16,7 +16,7 @@ const ALLOWED = (Deno.env.get('ALLOWED_ORIGINS') ?? '*').split(',').map((s) => s
 
 // Exported models (tools/export_models.py), pinned to the commit they were
 // published in. Override with MODELS_BASE_URL to host them elsewhere.
-const MODELS_COMMIT = '__MODELS_COMMIT__';
+const MODELS_COMMIT = '55ec1d936253913635bbc02cbd0b5d3e452db62b';
 const MODELS_BASE_URL =
   Deno.env.get('MODELS_BASE_URL') ??
   `https://raw.githubusercontent.com/MozartofCode/Blackjack/${MODELS_COMMIT}/Blackjack-V2/packages/bots/models`;

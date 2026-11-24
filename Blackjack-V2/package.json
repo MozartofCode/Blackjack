@@ -4,14 +4,18 @@
   "version": "2.0.0",
   "description": "Blackjack Daily: a once-a-day blackjack challenge against Bertan's AI bots",
   "type": "module",
-  "workspaces": ["packages/*", "web"],
+  "workspaces": [
+    "packages/*",
+    "web"
+  ],
   "scripts": {
     "dev": "npm run dev -w web",
     "build": "npm run sync:shared && npm run build -w web",
     "test": "vitest run",
     "typecheck": "tsc -p packages/engine && tsc -p packages/bots && npm run typecheck -w web",
     "sim": "tsx scripts/sim.ts",
-    "sync:shared": "node scripts/sync-shared.mjs"
+    "sync:shared": "node scripts/sync-shared.mjs",
+    "build:function": "npx esbuild supabase/functions/daily/index.ts --bundle --format=esm --platform=browser --target=es2022 --minify --legal-comments=none --outfile=supabase/functions/daily/bundle/daily.mjs"
   },
   "devDependencies": {
     "tsx": "^4.19.2",
