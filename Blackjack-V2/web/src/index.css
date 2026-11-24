@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Manrope', system-ui, sans-serif;
+
+  --color-ink: #07140f;
+  --color-felt: #0f3d2e;
+  --color-felt-deep: #0a2a20;
+  --color-felt-light: #16523d;
+  --color-brass: #d4a24c;
+  --color-brass-light: #f0c977;
+  --color-ivory: #f5efe0;
+  --color-ruby: #c8363d;
+  --color-win: #3ecf8e;
+  --color-lose: #ef5b5b;
+  --color-push: #a8b3ad;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+.felt {
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 0%, rgba(255, 255, 255, 0.07), transparent 60%),
+    radial-gradient(ellipse at 50% 40%, var(--color-felt-light) 0%, var(--color-felt) 45%, var(--color-felt-deep) 100%);
+}
+
+/* Subtle woven texture on the felt. */
+.felt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.12) 0 1px, transparent 1px 4px);
+}
+
+.money {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+.brass-text {
+  background: linear-gradient(180deg, var(--color-brass-light), var(--color-brass) 60%, #a7782c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card-face {
+  background: linear-gradient(160deg, #fffdf6, #f1e9d6);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 6px 14px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.card-back {
+  background:
+    repeating-linear-gradient(45deg, rgba(212, 162, 76, 0.35) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-45deg, rgba(212, 162, 76, 0.35) 0 2px, transparent 2px 7px),
+    linear-gradient(160deg, #7a1f26, #4c1117);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35), 0 0 0 2px #f5efe0 inset, 0 0 0 4px #7a1f26 inset;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl font-bold tracking-wide transition select-none
+    active:scale-[0.97] disabled:opacity-35 disabled:active:scale-100 disabled:cursor-not-allowed
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass-light;
+}
+
+@utility btn-brass {
+  @apply btn text-ink;
+  background: linear-gradient(180deg, var(--color-brass-light), var(--color-brass));
+  box-shadow: 0 2px 0 #8a6224, 0 8px 20px rgba(212, 162, 76, 0.25);
+}
+
+@utility btn-ghost {
+  @apply btn bg-white/8 text-ivory ring-1 ring-white/15 hover:bg-white/14;
+}
+
+@utility kbd {
+  @apply ml-1 hidden rounded border border-current/30 px-1 text-[10px] font-semibold opacity-60 md:inline;
+}
+
+.safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

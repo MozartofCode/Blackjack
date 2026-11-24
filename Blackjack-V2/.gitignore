@@ -1,26 +1,13 @@
-# Dependencies
 node_modules/
-
-# Environment
+dist/
 .env
 .env.local
 .env.production
-
-# OS files
 .DS_Store
-Thumbs.db
-desktop.ini
-
-# Logs
 *.log
-npm-debug.log*
-
-# IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# Build output
-dist/
-build/
+tools/.venv/
+__pycache__/
+supabase/.temp/
+supabase/functions/_shared/

@@ -1,0 +1,9 @@
+{
+  "name": "@bj/bots",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts", "./bundle": "./src/bundle.ts" },
+  "dependencies": { "@bj/engine": "2.0.0" }
+}

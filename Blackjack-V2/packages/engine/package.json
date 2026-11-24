@@ -1,0 +1,1 @@
+{ "name": "@bj/engine", "version": "2.0.0", "private": true, "type": "module", "main": "src/index.ts", "exports": { ".": "./src/index.ts" } }

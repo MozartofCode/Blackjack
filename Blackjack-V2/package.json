@@ -1,22 +1,21 @@
 {
-  "name": "blackjack-v2",
-  "version": "1.0.0",
-  "description": "Casino Royale V2 — Multiplayer Blackjack API with session management",
-  "main": "server.js",
+  "name": "blackjack-daily",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Blackjack Daily: a once-a-day blackjack challenge against Bertan's AI bots",
+  "type": "module",
+  "workspaces": ["packages/*", "web"],
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "frontend": "cd frontend && npm run dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "npm run dev -w web",
+    "build": "npm run sync:shared && npm run build -w web",
+    "test": "vitest run",
+    "typecheck": "tsc -p packages/engine && tsc -p packages/bots && npm run typecheck -w web",
+    "sim": "tsx scripts/sim.ts",
+    "sync:shared": "node scripts/sync-shared.mjs"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.49.1",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.5.0",
-    "helmet": "^8.0.0",
-    "node-cache": "^5.1.2",
-    "uuid": "^11.0.5"
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "~5.7.2",
+    "vitest": "^2.1.8"
   }
 }

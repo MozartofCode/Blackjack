@@ -1,0 +1,9 @@
+{
+  "name": "Blackjack Daily",
+  "short_name": "Blackjack",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07140f",
+  "theme_color": "#0a2a20",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

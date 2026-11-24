@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@bj/engine": "../_shared/engine/src/index.ts",
+    "@bj/bots": "../_shared/bots/src/index.ts",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.49.1"
+  }
+}

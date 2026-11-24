@@ -1,0 +1,12 @@
+# Minimal Supabase CLI config for Blackjack Daily.
+project_id = "blackjack-daily"
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+enable_anonymous_sign_ins = false
+
+[functions.daily]
+# Players authenticate with a device player key checked inside the function.
+verify_jwt = false
